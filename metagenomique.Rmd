@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Dans ce document, nous allons réaliser l'analyses de données métagénomique provenant du tube digestif de 18 pucerons appartenant à 3 espèces (6 pucerons par espèce). Nous allons réaliser des graphiques qui illustrent l'abondance des bactéries dans les pucerons. Nous allons également comparere les diversités alpha et béta entre les éhantillons. Finalement, nous allons voir si les communautés bactériennes sont plutôt influencées par l'espèce de puceron ou plutôt par l'altitude à laquelle l'échantillon a été récolté.
+Dans ce document, nous allons réaliser l'analyses de données métagénomiques provenant du tube digestif de 18 pucerons appartenant à 3 espèces (6 pucerons par espèce). Nous allons réaliser des graphiques qui illustrent l'abondance des bactéries dans les pucerons. Nous allons également comparer les diversités alpha et béta entre les éhantillons. Finalement, nous allons voir si les communautés bactériennes sont plutôt influencées par l'espèce de puceron ou plutôt par l'altitude à laquelle l'échantillon a été récolté.
 
 ## 1 : Chargement des package 
 
@@ -31,9 +31,9 @@ print(table)
 apply(table,2,sum)
 ```
 
-Dans ce tableau, on observe les 18 observations (pucerons) et les 17 variables (OTU n°1 ... OTU n°17) (1 OTUs correspond à un groupe de bactérie très homogène). Les observations sont les colonnes alors que les variables sont les lignes. En génomique, cette organisation des données est largement utilisée étant donné que le nombre de variables est générallement beaucoup plus grand que le nombre d'observations.
+Dans ce tableau, on observe les 18 observations (pucerons) et les 17 variables (OTU n°1 ... OTU n°17) (1 OTUs correspond approximativement à une espèce de bactéries). Les observations sont les colonnes alors que les variables sont les lignes. En génomique, cette organisation des données est largement utilisée étant donné que le nombre de variables est générallement beaucoup plus grand que le nombre d'observations.
 
-On remarque que le nombre total de bactéries différe en fonction du puceron (90967 pour le premier pucerons versus 128569 pour le deuxième puceron). Nous allons appliquer une étape de raréfaction afin de partir sur un nombre identique (50.000) de bactéries par pucerons et de rendre les données comparable entre elles.  
+On remarque que le nombre total de bactéries différe en fonction des pucerons (90967 pour le premier puceron versus 128569 pour le deuxième puceron). Nous allons appliquer une étape de raréfaction afin de partir sur un nombre identique (50.000) de bactéries par puceron afin de rendre les données comparables entre elles.  
 
 
 ```{r}
@@ -125,6 +125,7 @@ Il est possible de tester si les distances inter-échantillons sont plutôt infl
 
 ```{r}
 myadonis <- adonis(as.dist(d5) ~ species+altitude,data=phenotypic)
+print(myadonis)
 ```
 
 Il est également possible de visualiser cette matrice de distance avec une analyse PCoA (Principal Coordinates analysis)
@@ -133,6 +134,12 @@ Il est également possible de visualiser cette matrice de distance avec une anal
 s.class(cmdscale(d5, k=2), fac = phenotypic$species,col=c('red','green2','blue'))
 ```
 
+## 9 : Travail à réaliser chez vous
+
+Afin de vérifier si vous avez bien compris les concepts expliqués dans ce document, vous allez maintenant créer une situation dans laquelle la diversité béta serait plus influencée par l'altitude plutot que par l'espèce de puceron.
+
+Astuce: repartez des données analysées dans ce document et modifiez le fichier 'phenotypic' et/ou 'otu.table'.
+Vérifiez ensuite l'impact de ces modifications en réalisant toutes les analyses sur ce nouveau jeu de données modifié.
 
 
 
