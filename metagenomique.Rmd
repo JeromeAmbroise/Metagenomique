@@ -1,0 +1,149 @@
+---
+title: "Analyse-metagenomic"
+author: "Ambroise Jérôme"
+date: "May 7, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Dans ce document, nous allons réaliser l'analyses de données métagénomique provenant du tube digestif de 18 pucerons appartenant à 3 espèces (6 pucerons par espèce). Nous allons réaliser des graphiques qui illustrent l'abondance des bactéries dans les pucerons. Nous allons également comparere les diversités alpha et béta entre les éhantillons. Finalement, nous allons voir si les communautés bactériennes sont plutôt influencées par l'espèce de puceron ou par l'altitude.
+
+## 1 : Chargement des package 
+
+
+```{r}
+suppressMessages(library(phyloseq))
+suppressMessages(library(Biostrings))
+suppressMessages(library(phangorn))
+suppressMessages(library(GUniFrac))
+suppressMessages(library(ade4))
+```
+
+
+## 2 : importation des données de comptage et pre-traitement
+
+```{r}
+table <- read.table('1-data-in/otu.Table.txt',sep='\t')
+print(table)
+apply(table,2,sum)
+```
+
+Dans ce tableau, on observe les 18 observations (pucerons) et les 17 variables (OTU n°1 ... OTU n°17) (1 OTUs correspond à un groupe de bactérie très homogène). Les observations sont les colonnes alors que les variables sont les lignes. En génomique, cette organisation des données est largement utilisée étant donné que le nombre de variables est générallement beaucoup plus grand que le nombre d'observations.
+
+On remarque que le nombre total de bactéries différe en fonction du puceron (90967 pour le premier pucerons versus 128569 pour le deuxième puceron). Nous allons appliquer une étape de raréfaction afin de partir sur un nombre identique (50.000) de bactéries par pucerons et de rendre les données comparable entre elles.  
+
+
+```{r}
+OTU <- otu_table(table,taxa_are_rows = T)
+myphyloseq <- phyloseq(OTU)
+myphyloseq <- rarefy_even_depth(myphyloseq, sample.size = 50000, replace = F)
+table.rrf <- data.frame(otu_table(myphyloseq))
+apply(table.rrf,2,sum)
+OTU <- otu_table(table.rrf,taxa_are_rows= T) 
+```
+
+## 3: importation des données taxonomiques
+
+1 OTU correspond à une séquence (région de du gènes 18s). Les bactéries qui ont le même OTU sont très proches.
+Grâce à des bases de données (pex greengenes), il est possible de connaitre la famille, le genre et même l'espèce qui correspond à un OTU particulier. Dans cette étude, cette information a été notée dans le tableau 'taxonomy.txt'.
+
+```{r}
+otus <- readDNAStringSet("1-data-in/otus.fasta", format = "fasta")
+print(otus)
+taxonomy <- read.table('1-data-in/taxonomy.txt',sep='\t')
+print(taxonomy)
+taxtable <- tax_table(as.matrix(taxonomy))
+```
+
+## 4: importation des données phénotypiques
+
+Nous importons également les données de caractérisation des pucerons.
+
+```{r}
+phenotypic <- read.csv('1-data-in/phenotypic.csv')
+rownames(phenotypic) <- colnames(table.rrf)
+sampledata <- sample_data(phenotypic)
+```
+
+## 5: fusion de toutes les informations dans un objet de type phyloseq
+
+```{r}
+myphyloseq <- phyloseq(OTU,taxtable,sampledata)
+print(myphyloseq)
+```
+
+## 6: Représentations graphiques des abondances de bactéries dans les pucerons
+
+Nous allons réaliser deux représentations des données qui sont largement utilisées dans la littérature.
+
+```{r}
+plot_bar(myphyloseq,fill='genus')
+```
+
+Dans ce barplot, on observe facilement que les tubes digestifs de deux espèces de pucerons sont peuplés par une large majorité d'une seule espèce bactérienne (appelée Buchnéra). Pour la troisième espèce de puceron, plusieurs autres epsèces de bactéries sont également présentes en grande quantité (Regiella, Seratia, Hamiltonella).
+
+Ces informations sont également visibles dans le 'Heatmap' ci-dessous:
+
+```{r}
+plot_heatmap(myphyloseq,taxa.label='genus',taxa.order='genus',sample.order=colnames(table.rrf),low='yellow',high='red',na.value = 'yellow') 
+```
+
+## 7: Analyse de la diversité alpha
+
+La diversité alpha est une mesure de la diversité intra-échantillon. Plusieurs indices sont utilisés dans la littérature pour la caractériser. Les plus populaires sont le nombre d'OTUs observés, l'indice de Shannon et l'indice de Simpson.
+
+```{r}
+plot_richness(myphyloseq,measures=c("Observed", "Shannon", "Simpson"),color='species')
+```
+
+## 8: Analyse de la beta diversity
+
+La diversité beta est une mesure de la diversité inter-échantillon. Elle est caractérisée par une matrice de distance entre chaque paire d'échantillons. Dans ce document, nous allons calculer cette distance avec la métrique Unifrac généralisée (implémentée dans le package GUnifrac).
+
+Dans un premier temps, nous devons calculer un arbre phylogénétique sur bases des séquences des 17 OTUs
+
+```{r}
+names(otus) <- paste(names(otus),taxonomy$genus,sep=':')
+row.names(table.rrf) <- names(otus)
+align.muscle <- muscle::muscle(otus,quiet=T)
+dist1 <- stringDist(as(align.muscle,"DNAStringSet"), method="hamming")
+mytree1 <- upgma(dist1)
+plot(mytree1)
+```
+
+Nous pouvons alors calculer la matrice de distance.
+
+```{r}
+unifracs <- GUniFrac(t(table.rrf), mytree1)$unifracs
+d5 <- unifracs[, , "d_0.5"]
+```
+
+Il est possible de tester si les distances inter-échantillons sont plutôt influencées par l'espèce de puceron ou plutôt par l'altitude à laquelle l'échantillon a été prélevé.
+
+```{r}
+myadonis <- adonis(as.dist(d5) ~ species+altitude,data=phenotypic)
+```
+
+Il est également possible de visualiser cette matrice de distance avec une analyse PCoA (Principal Coordinates analysis)
+
+```{r}
+s.class(cmdscale(d5, k=2), fac = phenotypic$species,col=c('red','green2','blue'))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
