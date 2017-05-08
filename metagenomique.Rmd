@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Dans ce document, nous allons réaliser l'analyses de données métagénomique provenant du tube digestif de 18 pucerons appartenant à 3 espèces (6 pucerons par espèce). Nous allons réaliser des graphiques qui illustrent l'abondance des bactéries dans les pucerons. Nous allons également comparere les diversités alpha et béta entre les éhantillons. Finalement, nous allons voir si les communautés bactériennes sont plutôt influencées par l'espèce de puceron ou par l'altitude.
+Dans ce document, nous allons réaliser l'analyses de données métagénomique provenant du tube digestif de 18 pucerons appartenant à 3 espèces (6 pucerons par espèce). Nous allons réaliser des graphiques qui illustrent l'abondance des bactéries dans les pucerons. Nous allons également comparere les diversités alpha et béta entre les éhantillons. Finalement, nous allons voir si les communautés bactériennes sont plutôt influencées par l'espèce de puceron ou plutôt par l'altitude à laquelle l'échantillon a été récolté.
 
 ## 1 : Chargement des package 
 
